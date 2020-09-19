@@ -162,7 +162,6 @@ if __name__ == '__main__':
     parser.add_argument("--root", default="feature_dataset/Office-Home_resnet50", type=str)
     parser.add_argument("--data", type=str, default="Office-Home")
     parser.add_argument("--result", type=str, default="result")
-    parser.add_argument("--source", default="Art", help="source domain")
     parser.add_argument("--target", default="Clipart", help="target domain")
     parser.add_argument("--feature_dim", default=256, type=int, help="Feature dim")
     parser.add_argument("--remove_list_idx", default=0, type=int)
