@@ -36,12 +36,6 @@ class AdversarialNetwork(nn.Module):
     self.ad_layer1 = nn.Linear(in_feature, 1024)
     self.ad_layer2 = nn.Linear(1024,1024)
     self.ad_layer3 = nn.Linear(1024, 1)
-    self.ad_layer1.weight.data.normal_(0, 0.01)
-    self.ad_layer2.weight.data.normal_(0, 0.01)
-    self.ad_layer3.weight.data.normal_(0, 0.3)
-    self.ad_layer1.bias.data.fill_(0.0)
-    self.ad_layer2.bias.data.fill_(0.0)
-    self.ad_layer3.bias.data.fill_(0.0)
     self.relu1 = nn.ReLU()
     self.relu2 = nn.ReLU()
     self.dropout1 = nn.Dropout(0.5)
@@ -50,11 +44,7 @@ class AdversarialNetwork(nn.Module):
 
   def forward(self, x):
     x = self.ad_layer1(x)
-    x = self.relu1(x)
-    x = self.dropout1(x)
     x = self.ad_layer2(x)
-    x = self.relu2(x)
-    x = self.dropout2(x)
     x = self.ad_layer3(x)
     x = self.sigmoid(x)
     return x
@@ -78,7 +68,6 @@ class DANN(nn.Module):
             nn.Linear(self.input_size, self.feature_dim),
             nn.BatchNorm1d(self.feature_dim),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate)
         )
 
         self.label_classifier = nn.Linear(self.feature_dim, self.num_class)
@@ -92,16 +81,14 @@ class DANN(nn.Module):
             nn.Linear(self.feature_dim, domain_classifier_dim),
             nn.BatchNorm1d(domain_classifier_dim),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),
             nn.Linear(domain_classifier_dim, domain_classifier_dim),
             nn.BatchNorm1d(domain_classifier_dim),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),
             nn.Linear(domain_classifier_dim, 2)
         )
 
         self.mse_loss = nn.MSELoss()
-        self.input_dropout = nn.Dropout(0.2)
+        self.input_dropout = nn.Dropout(0.0)
 
     def calculate_label_loss(self, src_label_logits, src_label):
         label_loss = F.cross_entropy(input=src_label_logits, target=src_label)
@@ -130,21 +117,17 @@ class DANN(nn.Module):
         return label_logits
 
     def forward(self, x, src_label):
-        x = self.input_dropout(x)
         inner_code = self.bottleneck(x)
         label_logits = self.label_classifier(inner_code)
 
         f_s, f_t = inner_code.chunk(2, dim=0)
         src_label_logits, tgt_label_logits = label_logits.chunk(2, dim=0)
 
-        # label_loss = self.calculate_label_loss(src_label_logits=src_label_logits, src_label=src_label)
-
         return src_label_logits, f_s, f_t
 
     def get_parameters(self):
         params = [{"params": self.bottleneck.parameters(), "lr_mult": 1.0},
-                  {"params": self.label_classifier.parameters(), "lr_mult": 1.0},
-                  {"params": self.domain_classifier.parameters(), "lr_mult": 1.0}]
+                  {"params": self.label_classifier.parameters(), "lr_mult": 1.0}]
 
         return params
 
